@@ -1,0 +1,292 @@
+IMPORTANT: REMOVE EXPRESS COMPLETELY AND MIGRATE THE ENTIRE API TO VERCEL SERVERLESS FUNCTIONS
+
+I do NOT want a traditional Express backend anymore.
+
+Remove Express completely from the project and convert the entire `api/` directory into a proper Vercel Serverless Functions API that can be deployed directly to Vercel.
+
+Requirements:
+
+1. REMOVE EXPRESS COMPLETELY
+
+Remove:
+- express
+- @types/express
+- Express app/server architecture
+- app.listen()
+- PORT requirement for production
+- api/server.ts
+- any Express middleware
+- any Express Router usage
+
+Remove Express-related dependencies from package.json and clean package-lock.json.
+
+Do NOT replace Express with another long-running server.
+
+The API must be completely serverless.
+
+2. VERCEL SERVERLESS ARCHITECTURE
+
+The `/api` directory must contain Vercel-compatible serverless functions.
+
+Use a structure similar to:
+
+api/
+├── auth/
+│   └── login.ts
+├── companies/
+│   ├── index.ts
+│   └── [id].ts
+├── employees/
+│   ├── index.ts
+│   └── [id].ts
+├── attendance/
+│   └── [employeeId].ts
+├── salary/
+│   └── [employeeId].ts
+├── account-sheet/
+│   └── index.ts
+├── health.ts
+├── db/
+│   ├── index.ts
+│   └── schema/
+│       └── index.ts
+├── lib/
+│   └── logger.ts
+└── api-zod/
+    └── ...
+
+Use Vercel-compatible request/response handlers.
+
+Each API file must export a serverless handler/function.
+
+3. PRESERVE EXISTING FUNCTIONALITY
+
+Do NOT remove existing API functionality.
+
+Preserve:
+
+- Authentication
+- Admin/Supervisor roles
+- Authorization
+- Companies
+- Employees
+- Attendance
+- Salary
+- Account Sheet
+- Database operations
+- Zod validation
+- Generated API types
+- Drizzle ORM
+- PostgreSQL
+- Error handling
+- Logging where appropriate
+
+Only change the server architecture from Express to Vercel Serverless Functions.
+
+4. DATABASE
+
+Continue using the existing remote PostgreSQL database.
+
+Use:
+
+DATABASE_URL
+
+as a server-only environment variable.
+
+The React Native/Expo application must NEVER directly connect to PostgreSQL.
+
+The Expo bundle must NEVER contain:
+
+DATABASE_URL
+database username
+database password
+JWT_SECRET
+other server secrets
+
+5. API ENDPOINTS
+
+Maintain clean REST-style endpoints.
+
+For example:
+
+POST /api/auth/login
+
+GET /api/companies
+
+GET /api/companies/:id
+
+GET /api/employees
+
+GET /api/employees/:id
+
+GET /api/attendance
+
+GET /api/salary
+
+GET /api/account-sheet
+
+GET /api/health
+
+Make sure the actual Vercel file structure correctly maps to these endpoints.
+
+6. AUTHORIZATION
+
+Authentication and authorization must happen inside the serverless functions.
+
+Admin:
+- Can access all companies
+- Can access Account Sheet
+- Can manage permitted data
+
+Supervisor:
+- Can access assigned companies/employees
+- Cannot access Admin-only Account Sheet
+- Cannot access unauthorized company data
+
+Do not rely only on frontend UI restrictions.
+
+The API itself must enforce permissions.
+
+7. EXPO CLIENT
+
+Keep the existing React Native + Expo application unchanged wherever possible.
+
+The mobile app should communicate with:
+
+EXPO_PUBLIC_API_URL
+
+Example:
+
+EXPO_PUBLIC_API_URL=https://target-ops.vercel.app
+
+API calls should look like:
+
+${EXPO_PUBLIC_API_URL}/api/companies
+
+Do not expose server secrets through EXPO_PUBLIC_* variables.
+
+8. NO LOCAL BACKEND SERVER
+
+There must be NO production backend server.
+
+Do not require:
+
+npm run api:dev
+
+for production.
+
+Do not require:
+
+PORT
+
+for production.
+
+Do not use:
+
+app.listen()
+
+Do not create a replacement Express server.
+
+The production architecture must be:
+
+Android React Native + Expo
+        ↓ HTTPS
+Vercel Serverless Functions
+        ↓
+Remote PostgreSQL
+
+9. VERCEL CONFIGURATION
+
+Create/update the required Vercel configuration so the project can be deployed directly to Vercel.
+
+If a `vercel.json` is required, create it.
+
+Make sure Vercel correctly detects and deploys the `/api` functions.
+
+10. PACKAGE MANAGER
+
+npm ONLY.
+
+Do not use:
+- pnpm
+- yarn
+- bun
+
+Keep:
+
+package.json
+package-lock.json
+
+Do not create:
+- pnpm-lock.yaml
+- pnpm-workspace.yaml
+- yarn.lock
+- bun.lockb
+
+11. REPLIT
+
+This project is a standard React Native + Expo project.
+
+DO NOT convert it into a Replit Artifact.
+
+DO NOT convert it into a web application.
+
+DO NOT add Vite.
+
+DO NOT change React Native to React DOM.
+
+Preserve the existing Expo project structure.
+
+12. IMPORTANT CLEANUP
+
+After migration:
+
+- Delete `api/server.ts`
+- Remove Express from package.json
+- Remove Express types
+- Remove unused Express imports
+- Remove PORT requirements
+- Remove Express middleware
+- Remove Express routers
+- Remove obsolete server code
+- Remove unused dependencies
+- Update package-lock.json
+
+Do not leave dead Express code behind.
+
+13. VERIFY EVERYTHING
+
+Run:
+
+npm install
+npm run typecheck
+npm run api:typecheck
+npm run build
+npx expo config
+
+Also verify that:
+
+- TypeScript passes
+- API TypeScript passes
+- Expo build passes
+- No Express imports remain
+- No `app.listen()` remains
+- No production PORT requirement remains
+- No pnpm files exist
+- No Artifact conversion exists
+- `/api` is Vercel Serverless compatible
+
+Finally show me:
+
+1. Final `api/` folder structure
+2. Final `package.json` dependencies
+3. Every API endpoint
+4. Vercel deployment configuration
+5. Required Vercel environment variables
+6. How to deploy to Vercel
+7. How the Expo app connects to the deployed API
+
+IMPORTANT:
+Do not rewrite the UI.
+Do not change the existing business logic unnecessarily.
+Only migrate the API architecture from Express to pure Vercel Serverless Functions.

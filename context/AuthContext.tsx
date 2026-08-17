@@ -1,0 +1,64 @@
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { login as loginRequest, getMe } from "@/api-client";
+import type { User } from "@/api-client";
+import { clearToken, getToken, saveToken } from "@/services/storage";
+
+type AuthContextValue = {
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void (async () => {
+      const stored = await getToken();
+      if (!stored) {
+        setLoading(false);
+        return;
+      }
+      setToken(stored);
+      try {
+        setUser(await getMe());
+      } catch {
+        await clearToken();
+        setToken(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const value = useMemo<AuthContextValue>(() => ({
+    user,
+    token,
+    isLoading,
+    signIn: async (email, password) => {
+      const response = await loginRequest({ email, password });
+      await saveToken(response.token);
+      setToken(response.token);
+      setUser(response.user);
+    },
+    signOut: async () => {
+      await clearToken();
+      setToken(null);
+      setUser(null);
+    },
+  }), [user, token, isLoading]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const value = useContext(AuthContext);
+  if (!value) throw new Error("useAuth must be used within AuthProvider");
+  return value;
+}

@@ -1,0 +1,283 @@
+IMPORTANT: FINAL DEPLOYMENT ARCHITECTURE
+
+Keep the project as an Android-only React Native + Expo application.
+
+The final architecture must be:
+
+                    ANDROID APP
+               React Native + Expo
+                       |
+                       | HTTPS API
+                       v
+                 VERCEL
+          Serverless Functions (/api)
+                       |
+                       | DATABASE_URL
+                       v
+             REMOTE POSTGRESQL DB
+
+
+1. MOBILE APP
+
+The React Native + Expo application will be built into an Android APK/AAB using Expo/EAS.
+
+The Android application is NOT deployed to Vercel.
+
+The APK will be distributed internally to company Android devices.
+
+The mobile app must communicate with the server only through HTTPS API requests.
+
+The mobile app must NEVER directly connect to PostgreSQL.
+
+The mobile app must NEVER contain:
+- DATABASE_URL
+- PostgreSQL username/password
+- JWT_SECRET
+- Any server-side secret
+
+Only the public API base URL may be available to the mobile app, for example:
+
+EXPO_PUBLIC_API_URL=https://your-project.vercel.app
+
+
+2. VERCEL
+
+Vercel will replace the traditional backend server.
+
+Deploy the server-side API code from the /api directory as Vercel Serverless Functions.
+
+There should NOT be a continuously running Express backend in production.
+
+Do not depend on:
+
+api/server.ts
+
+or a long-running Express server for production.
+
+Convert the existing API routes into proper Vercel-compatible serverless functions while preserving the existing API logic.
+
+Example structure:
+
+api/
+├── auth/
+│   └── login.ts
+├── companies/
+│   ├── index.ts
+│   └── [id].ts
+├── employees/
+│   ├── index.ts
+│   └── [id].ts
+├── attendance/
+│   └── [employeeId].ts
+├── salary/
+│   └── [employeeId].ts
+└── account-sheet/
+    └── index.ts
+
+
+These should become API endpoints such as:
+
+POST /api/auth/login
+
+GET /api/companies
+
+GET /api/companies/:id
+
+GET /api/employees/:id
+
+GET /api/employees/:id/attendance
+
+GET /api/employees/:id/salary
+
+GET /api/account-sheet
+
+
+3. DATABASE
+
+Use the remote PostgreSQL database as the source of truth.
+
+The database connection must happen ONLY on the server/Vercel side.
+
+Example:
+
+Vercel Environment Variable:
+
+DATABASE_URL=...
+
+Never expose DATABASE_URL to Expo/React Native.
+
+Keep the existing database layer/schema if it is already working.
+
+Database operations:
+
+Android App
+    ↓
+Vercel Serverless API
+    ↓
+Database layer / ORM
+    ↓
+Remote PostgreSQL
+
+
+4. VERCEL ENVIRONMENT VARIABLES
+
+Configure server-only environment variables in Vercel.
+
+For example:
+
+DATABASE_URL
+JWT_SECRET
+SESSION_SECRET
+OTHER_SERVER_SECRETS
+
+Do NOT prefix server secrets with EXPO_PUBLIC_.
+
+Only client-safe values may use:
+
+EXPO_PUBLIC_API_URL
+
+
+5. API SECURITY
+
+Every serverless function must:
+
+- Authenticate the request
+- Validate request data
+- Check user role
+- Check company permissions
+- Access the database securely
+- Return JSON responses
+- Never expose database credentials
+- Never expose server secrets
+
+Admin:
+- Can access all companies
+- Can access Account Sheet
+- Can manage all permitted data
+
+Supervisor:
+- Can access only assigned companies/data
+- MUST NOT access Account Sheet
+- MUST NOT access Admin-only APIs
+
+Hiding a button in React Native is NOT enough.
+
+The Vercel API must enforce these permissions.
+
+
+6. LOCAL DEVELOPMENT
+
+The project should still be easy to develop locally.
+
+For Expo:
+
+npm install
+
+npx expo start
+
+For Android:
+
+npx expo start --android
+
+For local API development, provide a development-compatible API workflow.
+
+If the current api/server.ts is only being used for local development, clearly separate it from the production Vercel Serverless Functions.
+
+Do not make the production architecture dependent on a long-running Express server.
+
+
+7. DEPLOYMENT
+
+The deployment should work like this:
+
+GitHub / Replit
+      |
+      ├── Expo React Native code
+      |
+      └── /api serverless functions
+                |
+                v
+             Vercel
+                |
+                v
+        Remote PostgreSQL
+
+
+Android build:
+
+React Native + Expo
+        |
+        v
+     EAS Build
+        |
+        v
+      APK/AAB
+        |
+        v
+Internal Company Android Devices
+
+
+8. IMPORTANT
+
+Do NOT deploy the Android application to Vercel.
+
+Vercel is only for the server-side API/serverless functions.
+
+Do NOT deploy PostgreSQL locally.
+
+Use the remote PostgreSQL database.
+
+Do NOT create a traditional VPS backend.
+
+Do NOT introduce AWS VPS unless explicitly requested.
+
+Do NOT use Firebase.
+
+Do NOT use Supabase unless explicitly requested.
+
+Do NOT use Flutter.
+
+Do NOT use Electron.
+
+Do NOT use Tauri.
+
+
+9. FINAL ARCHITECTURE TO PRESERVE
+
+ANDROID:
+React Native + Expo + TypeScript
+
+API:
+Vercel Serverless Functions inside /api
+
+DATABASE:
+Remote PostgreSQL
+
+ORM/DATABASE LAYER:
+Keep the currently configured database layer if it is working.
+
+AUTH:
+Secure token/session based authentication
+
+PACKAGE MANAGER:
+npm only
+
+
+10. AFTER CHANGES
+
+After implementing this architecture:
+
+- Verify npm install
+- Verify npm run typecheck
+- Verify npm run api:typecheck
+- Verify npx expo config
+- Verify Expo starts
+- Verify API functions compile
+- Verify no DATABASE_URL is included in Expo/client code
+- Verify no server secrets are exposed to the mobile app
+- Verify Admin/Supervisor API authorization
+- Verify the project remains compatible with Vercel deployment
+- Show the final folder structure
+- Clearly identify which files are deployed to Vercel and which files are part of the Android app
+
+Do NOT rewrite the existing UI unnecessarily. Preserve the current React Native + Expo screens and business logic while fixing the deployment architecture.
